@@ -1,0 +1,23 @@
+{
+  "name": "pegasus-js",
+  "version": "1.0.0",
+  "description": "Miscellaneous discord bot for a handful of servers I like.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/impaex/Pegasus-JS.git"
+  },
+  "author": "Impaex",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/impaex/Pegasus-JS/issues"
+  },
+  "homepage": "https://github.com/impaex/Pegasus-JS#readme",
+  "dependencies": {
+    "discord.js": "^14.7.1",
+    "dotenv": "^16.0.3"
+  }
+}
