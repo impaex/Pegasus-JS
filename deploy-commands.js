@@ -27,7 +27,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 		const data = await rest.put(
             // Use this to make the commands global.
             // Routes.applicationCommands(process.env.CLIENT_ID),
-			Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+			Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.TEST_GUILD_ID),
 			{ body: commands },
 		);
 

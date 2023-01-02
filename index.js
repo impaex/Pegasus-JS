@@ -1,10 +1,23 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { Client: DBClient } = require('pg');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const dotenv = require('dotenv');
 
 // Initialize dotenv
 dotenv.config();
+
+// Initialize Database
+const dbClient = new DBClient({
+	host: process.env.DB_HOST,
+	user: process.env.DB_USER,
+	port: process.env.DB_PORT,
+	password: process.env.DB_PASSWORD,
+	database: process.env.DB_DATABASE,
+});
+
+dbClient.connect();
+
 
 // Create a new client instance
 const client = new Client({ intents: [
