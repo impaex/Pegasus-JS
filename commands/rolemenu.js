@@ -128,6 +128,23 @@ module.exports = {
         }
         else if (interaction.options.getSubcommand() === 'create') {
             let title = interaction.options.getString('title');
+            const res = await dbClient.query("SELECT * FROM rolemenus WHERE guild_id = $1 AND title = $2", [interaction.guildId, title]);
+            if (res.rowCount === 0) {
+                let description = interaction.options.getString('description');
+                let embed = customEmbed("Rolemenu Create", `Title: \`${title}\`\n Description: \`${description}\``);
+                embed.addFields( {name: "Roles", value: "Please choose available roles to add to the rolemenu.\nMake Bsure all roles used are below the Pegasus role!"});
+                let roles = interaction.guild.roles.cache;
+                let botRole = interaction.guild.roles.botRoleFor(interaction.client.user);
+                let availableRoles = roles.filter(role => interaction.guild.roles.comparePositions(botRole, role) > 0);
+                // We assume no server has more than 25 selectable roles bc wtf
+                if (availableRoles.size <= 25) {
+                    // Use roleselectmenu with multi select
+                }
+            }   
+            else {
+                let embed = customEmbed("Rolemenu Create", `There already exists a rolemenu with title \`${title}\``, "ERROR");
+                await interaction.reply( { embeds: [embed] } );
+            }
 
 
         }
@@ -138,18 +155,16 @@ module.exports = {
             
             if (res.rowCount > 0) {
                 let msg_id = res.rows[0].msg_id;
-                // continue where left off
-                if (msg_id === null) {}
-                let ch_id = res.rows[0].channel_id;
+                // Delete message if it was still there
+                if (msg_id !== null) {
+                    let ch_id = res.rows[0].channel_id;
+                    let ch = await interaction.guild.channels.fetch(`${ch_id}`);
+                    await ch.messages.delete(`${msg_id}`); // Can error if messsage has been manually deleted.
+                }
                 
+                await dbClient.query("DELETE FROM rolemenus WHERE guild_id = $1 AND title = $2", [interaction.guildId, res.rows[0].title]);
 
-                // delete the rolemenu on discord
-                await dbClient.query("UPDATE rolemenus SET msg_id = NULL, channel_id = NULL WHERE guild_id = $1 AND title = $2", [interaction.guildId, title]);
-                let ch = await interaction.guild.channels.fetch(`${ch_id}`);
-                
-                await ch.messages.delete(`${msg_id}`); // Can error if messsage has been manually deleted.
-
-                replyEmbed = customEmbed("Rolemenu", `Successfully disabled rolemenu named \`${res.rows[0].title}\`.`);
+                replyEmbed = customEmbed("Rolemenu", `Successfully deleted rolemenu named \`${res.rows[0].title}\`.`);
             }
             else {
                 replyEmbed = customEmbed("Rolemenu", "Couldn't find a rolemenu with that title!", 'ERROR')
