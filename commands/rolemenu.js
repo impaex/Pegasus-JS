@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const customEmbed = require('../helpers/customEmbed');
 
 module.exports = {
@@ -116,7 +116,7 @@ module.exports = {
                 // delete the rolemenu on discord
                 await dbClient.query("UPDATE rolemenus SET msg_id = NULL, channel_id = NULL WHERE guild_id = $1 AND title = $2", [interaction.guildId, title]);
                 let ch = await interaction.guild.channels.fetch(`${ch_id}`);
-                
+
                 await ch.messages.delete(`${msg_id}`); // Can error if messsage has been manually deleted.
 
                 replyEmbed = customEmbed("Rolemenu", `Successfully disabled rolemenu named \`${res.rows[0].title}\`.`);
@@ -132,18 +132,40 @@ module.exports = {
             if (res.rowCount === 0) {
                 let description = interaction.options.getString('description');
                 let embed = customEmbed("Rolemenu Create", `Title: \`${title}\`\n Description: \`${description}\``);
-                embed.addFields( {name: "Roles", value: "Please choose available roles to add to the rolemenu.\nMake Bsure all roles used are below the Pegasus role!"});
+                embed.addFields({ name: "Roles", value: "Please choose available roles to add to the rolemenu.\nMake sure all roles used are below the Pegasus role!" });
                 let roles = interaction.guild.roles.cache;
                 let botRole = interaction.guild.roles.botRoleFor(interaction.client.user);
-                let availableRoles = roles.filter(role => interaction.guild.roles.comparePositions(botRole, role) > 0);
+                let availableRoles = roles.filter(role => interaction.guild.roles.comparePositions(botRole, role) > 0 && role.name !==  '@everyone');
                 // We assume no server has more than 25 selectable roles bc wtf
                 if (availableRoles.size <= 25) {
-                    // Use roleselectmenu with multi select
+                    let formatted = availableRoles.map(role => ({ 
+                        label: `${role.name}`, 
+                        description: role.managed ? "Watch out, this role is managed by an application." : "Select to add.", 
+                        value: `${role.id}` 
+                    }));
+                    const row = new ActionRowBuilder()
+                        .addComponents(
+                            new StringSelectMenuBuilder()
+                                .setCustomId(`rm${title}`)
+                                .setPlaceholder('Please choose the roles for the menu')
+                                .setMinValues(1)
+                                .setMaxValues(availableRoles.size > 10 ? 10 : availableRoles.size)
+                                .addOptions(formatted)
+                        );
+                    await interaction.reply({ embeds: [embed], components: [row] });
+
+                    // Collecting the selectmenu
+
+
                 }
-            }   
+                else {
+                    embed = customEmbed("Rolemenu Create", "Too many available roles, contact bot owner.", "ERROR");
+                    await interaction.reply({ embeds: [embed] });
+                }
+            }
             else {
                 let embed = customEmbed("Rolemenu Create", `There already exists a rolemenu with title \`${title}\``, "ERROR");
-                await interaction.reply( { embeds: [embed] } );
+                await interaction.reply({ embeds: [embed] });
             }
 
 
@@ -152,7 +174,7 @@ module.exports = {
             let title = interaction.options.getString('title');
             const res = await dbClient.query("SELECT * FROM rolemenus WHERE guild_id = $1 AND title = $2", [interaction.guildId, title]);
             let replyEmbed;
-            
+
             if (res.rowCount > 0) {
                 let msg_id = res.rows[0].msg_id;
                 // Delete message if it was still there
@@ -161,7 +183,7 @@ module.exports = {
                     let ch = await interaction.guild.channels.fetch(`${ch_id}`);
                     await ch.messages.delete(`${msg_id}`); // Can error if messsage has been manually deleted.
                 }
-                
+
                 await dbClient.query("DELETE FROM rolemenus WHERE guild_id = $1 AND title = $2", [interaction.guildId, res.rows[0].title]);
 
                 replyEmbed = customEmbed("Rolemenu", `Successfully deleted rolemenu named \`${res.rows[0].title}\`.`);
@@ -170,7 +192,7 @@ module.exports = {
                 replyEmbed = customEmbed("Rolemenu", "Couldn't find a rolemenu with that title!", 'ERROR')
             }
             await interaction.reply({ embeds: [replyEmbed] });
-            
+
         }
         else if (interaction.options.getSubcommand() === 'edit') {
             let title = interaction.options.getString('title');
